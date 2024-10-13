@@ -15,9 +15,7 @@ def key(state):
     return (
         state.getPacmanPosition(),
         state.getFood(),
-        # ...
     )
-
 
 class PacmanAgent(Agent):
     """Pacman agent based on depth-first search (DFS)."""
@@ -65,28 +63,30 @@ class PacmanAgent(Agent):
             if current.isWin():
                 return path
 
-            # Check if the current state is already closed
+            # Check if the current state is already closed if so skip it
             current_key = key(current)
             if current_key in closed:
                 continue
             closed.add(current_key)
 
-            # Generate successors 
+            # Generate successors and add them to the open queue
             for successor, action in current.generatePacmanSuccessors():
-                # Check if the successor is already closed
+                # Check if the successor is already closed if so skip it
                 successor_key = key(successor)
                 if successor_key in closed:
                     continue
                 
+                # +1 because the cost to move from the current node to the successor is 1 
+                # (take me a lot of time to understand this...)
                 tentative_g_score = g_score[current] + 1
                 
+                # Check if the successor is already in the open queue with a better g_score
                 if successor not in g_score or tentative_g_score < g_score[successor]:
                     g_score[successor] = tentative_g_score
                     f_score = tentative_g_score + self.heuristic(successor.getPacmanPosition(), state.getFood())
-                    
                     new_path = path + [action]
                     open_queue.push((successor, new_path), f_score)
-                    
+    
         # No solution
         return []
     
