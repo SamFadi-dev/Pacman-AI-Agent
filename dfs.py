@@ -55,6 +55,8 @@ class PacmanAgent(Agent):
         Returns:
             A list of legal moves.
         """
+        #state = l'etat actuel
+        #path c est le chemin pour atteindre cet etat + c est un tableau vide
 
         path = []
         fringe = Stack()
