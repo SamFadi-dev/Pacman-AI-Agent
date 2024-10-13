@@ -1,5 +1,5 @@
 from pacman_module.game import Agent, Directions
-from pacman_module.util import Stack
+from pacman_module.util import *
 
 
 def key(state):
@@ -15,13 +15,11 @@ def key(state):
     return (
         state.getPacmanPosition(),
         state.getFood(),
-        state.getWalls(),
         # ...
     )
 
-
 class PacmanAgent(Agent):
-    """Pacman agent based on depth-first search (DFS)."""
+    """Pacman agent based on breadth-first search (BFS)."""
 
     def __init__(self):
         super().__init__()
@@ -39,14 +37,14 @@ class PacmanAgent(Agent):
         """
 
         if self.moves is None:
-            self.moves = self.dfs(state)
+            self.moves = self.bfs(state)
 
         if self.moves:
             return self.moves.pop(0)
         else:
             return Directions.STOP
 
-    def dfs(self, state):
+    def bfs(self, state):
         """Given a Pacman game state, returns a list of legal moves to solve
         the search layout.
 
@@ -58,10 +56,10 @@ class PacmanAgent(Agent):
         """
 
         path = []
-        fringe = Stack()
+        fringe = Queue()
         fringe.push((state, path))
         closed = set()
-
+        
         while True:
             if fringe.isEmpty():
                 return []
@@ -70,16 +68,18 @@ class PacmanAgent(Agent):
 
             if current.isWin():
                 return path
-
-            #To avoid cycle
-            current_key = key(current)
-
-            if current_key in closed:
-                continue
-            else:
-                closed.add(current_key)
-
+            
             for successor, action in current.generatePacmanSuccessors():
-                fringe.push((successor, path + [action]))
+
+                #To avoid cycle
+
+                successor_key = key(successor)
+
+                if successor_key in closed:
+                    continue
+
+                else:
+                    closed.add(successor_key)
+                    fringe.push((successor, path + [action]))
 
         return path
