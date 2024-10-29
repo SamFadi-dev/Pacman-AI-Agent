@@ -17,6 +17,7 @@ def key(state):
         state.getFood(),
     )
 
+
 class PacmanAgent(Agent):
     """Pacman agent based on depth-first search (DFS)."""
 
@@ -75,21 +76,26 @@ class PacmanAgent(Agent):
                 successor_key = key(successor)
                 if successor_key in closed:
                     continue
-                
-                # +1 because the cost to move from the current node to the successor is 1 
-                # (take me a lot of time to understand this...)
+
+                # +1 because the cost to move from the current node to the
+                # successor is 1 (take me a lot of time to understand this...)
                 tentative_g_score = g_score[current] + 1
-                
-                # Check if the successor is already in the open queue with a better g_score
-                if successor not in g_score or tentative_g_score < g_score[successor]:
+
+                # Check if the successor is already
+                # in the open queue with a better g_score
+                is_smaller_g_score = tentative_g_score < g_score[successor]
+                if successor not in g_score or is_smaller_g_score:
                     g_score[successor] = tentative_g_score
-                    f_score = tentative_g_score + self.heuristic(successor.getPacmanPosition(), state.getFood())
+                    pacmanPosition = successor.getPacmanPosition()
+                    food = successor.getFood()
+                    heuristics = self.heuristic(pacmanPosition, food)
+                    f_score = tentative_g_score + heuristics
                     new_path = path + [action]
                     open_queue.push((successor, new_path), f_score)
-    
+
         # No solution
         return []
-    
+
     def reconstruct_path(self, parent, current):
         """Reconstruct the path from the parent dictionary
 
@@ -116,7 +122,8 @@ class PacmanAgent(Agent):
         Returns:
             the heuristic value
         """
-        food_positions = food_grid.asList() 
+        food_positions = food_grid.asList()
         # get the manhattan distance to the closest
-        #TODO: find better heuristic
-        return min([manhattanDistance(pacman_pos, food) for food in food_positions])
+        # TODO: find better heuristic
+        return min([manhattanDistance(pacman_pos, food)
+                    for food in food_positions])

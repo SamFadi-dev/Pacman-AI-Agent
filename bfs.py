@@ -18,6 +18,7 @@ def key(state):
         # ...
     )
 
+
 class PacmanAgent(Agent):
     """Pacman agent based on breadth-first search (BFS)."""
 
@@ -59,7 +60,7 @@ class PacmanAgent(Agent):
         fringe = Queue()
         fringe.push((state, path))
         closed = set()
-        
+
         while True:
             if fringe.isEmpty():
                 return []
@@ -68,11 +69,10 @@ class PacmanAgent(Agent):
 
             if current.isWin():
                 return path
-            
+
             for successor, action in current.generatePacmanSuccessors():
 
-                #To avoid cycle
-
+                # To avoid cycle
                 successor_key = key(successor)
 
                 if successor_key in closed:
