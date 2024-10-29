@@ -25,6 +25,9 @@ class PacmanAgent(Agent):
         super().__init__()
 
         self.moves = None
+        # Cache for the heuristic function
+        # Idk if I can put it here
+        self.heuristic_cache = {}
 
     def get_action(self, state):
         """Given a Pacman game state, returns a legal move.
@@ -56,7 +59,6 @@ class PacmanAgent(Agent):
         open_queue = PriorityQueue()
         open_queue.push((state, []), 0)
         g_score = {state: 0}
-        parent = dict()
 
         while not open_queue.isEmpty():
             _, (current, path) = open_queue.pop()
@@ -83,12 +85,12 @@ class PacmanAgent(Agent):
 
                 # Check if the successor is already
                 # in the open queue with a better g_score
-                is_smaller_g_score = tentative_g_score < g_score[successor]
-                if successor not in g_score or is_smaller_g_score:
+                succ = successor
+                if succ not in g_score or tentative_g_score < g_score[succ]:
                     g_score[successor] = tentative_g_score
                     pacmanPosition = successor.getPacmanPosition()
-                    food = successor.getFood()
-                    heuristics = self.heuristic(pacmanPosition, food)
+                    foods = successor.getFood()
+                    heuristics = self.heuristic(pacmanPosition, foods)
                     f_score = tentative_g_score + heuristics
                     new_path = path + [action]
                     open_queue.push((successor, new_path), f_score)
@@ -96,34 +98,44 @@ class PacmanAgent(Agent):
         # No solution
         return []
 
-    def reconstruct_path(self, parent, current):
-        """Reconstruct the path from the parent dictionary
-
-        Args:
-            parent: dictionary containing the parent of each node
-            current: the current node
-
-        Returns:
-            the total path from the start to the current
-        """
-        total_path = []
-        while parent[current] is not None:
-            total_path.insert(0, current)
-            current = parent[current]
-        return total_path
-
     def heuristic(self, pacman_pos, food_grid):
-        """find the heuristic value for the given pacman position and food grid
+        # Get the food positions
+        food_positions = tuple(food_grid.asList())
 
-        Args:
-            pacman_pos: position of pacman
-            food_grid: grid of food
+        # Get in cache if possible
+        if (pacman_pos, food_positions) in self.heuristic_cache:
+            return self.heuristic_cache[(pacman_pos, food_positions)]
 
-        Returns:
-            the heuristic value
-        """
-        food_positions = food_grid.asList()
-        # get the manhattan distance to the closest
-        # TODO: find better heuristic
-        return min([manhattanDistance(pacman_pos, food)
-                    for food in food_positions])
+        # If not cached, compute the heuristic
+        if not food_positions:
+            heuristic_value = 0
+        else:
+            # Calculate the nearest food distance
+            nearest_food = min(
+                manhattanDistance(pacman_pos, food) for food in food_positions
+            )
+
+            # Approximate the MST cost by summing
+            # distances between nearest food points
+            mst_cost = 0
+            unvisited = set(food_positions)
+            current_pos = food_positions[0]
+            unvisited.remove(current_pos)
+
+            while unvisited:
+                # Find the nearest unvisited food position from current_pos
+                next_food = min(
+                    unvisited, key=lambda food: manhattanDistance(
+                        current_pos, food
+                        )
+                    )
+                # Add the distance to mst_cost and move to next_food
+                mst_cost += manhattanDistance(current_pos, next_food)
+                current_pos = next_food
+                unvisited.remove(current_pos)
+
+            heuristic_value = nearest_food + mst_cost
+
+        # Cache the computed heuristic value
+        self.heuristic_cache[(pacman_pos, food_positions)] = heuristic_value
+        return heuristic_value
