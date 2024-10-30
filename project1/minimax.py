@@ -74,6 +74,7 @@ class PacmanAgent(Agent):
 
     def max_value(self, state, alpha, beta, depth):
         """Max value function for Minimax with alpha-beta pruning.
+        Code inspired from the pseudo code in the course.
 
         Args:
             state: a game state. See API or class `pacman.GameState`.
@@ -123,6 +124,7 @@ class PacmanAgent(Agent):
 
         Returns:
             The utility value and the corresponding action.
+            Code inspired from the pseudo code in the course.
         """
         # Check if the state is already in the transposition table
         state_key = key(state)
@@ -159,13 +161,24 @@ class PacmanAgent(Agent):
         ghost_positions = state.getGhostPositions()
 
         # Calculate the Manhattan distance to the nearest food pellet
-        min_food_distance = min(manhattanDistance(pacman_pos, food_pos) for food_pos in food_positions) if food_positions else 0
+        min_food_distance = min(
+            manhattanDistance(
+                pacman_pos, food_pos
+                ) for food_pos in food_positions
+            ) if food_positions else 0
 
         # Calculate the Manhattan distance to the nearest ghost
-        min_ghost_distance = min(manhattanDistance(pacman_pos, ghost_pos) for ghost_pos in ghost_positions) if ghost_positions else float('inf')
+        min_ghost_distance = min(
+            manhattanDistance(
+                pacman_pos, ghost_pos
+                ) for ghost_pos in ghost_positions
+            ) if ghost_positions else float('inf')
 
         # Penalty for being close to a ghost
-        ghost_penalty = -10 * (3 - min_ghost_distance) if min_ghost_distance < 3 else 0
+        if min_ghost_distance < 3:
+            ghost_penalty = -10 * (3 - min_ghost_distance)
+        else:
+            ghost_penalty = 0
+
         utility_value = state.getScore() - min_food_distance + ghost_penalty
-        
         return utility_value
