@@ -27,7 +27,7 @@ class PacmanAgent(Agent):
     def __init__(self):
         super().__init__()
         self.moves = None
-        self.depth = 7
+        self.depth = 8
         self.transposition_table = {}
 
     def get_action(self, state):
