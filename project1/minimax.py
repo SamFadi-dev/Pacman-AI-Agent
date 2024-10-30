@@ -1,6 +1,26 @@
 from pacman_module.game import Agent, Directions
 from pacman_module.util import manhattanDistance
 
+
+def key(state):
+    """Returns a key that uniquely identifies a Pacman game state.
+
+    Arguments:
+        state: a game state. See API or class `pacman.GameState`.
+
+    Returns:
+        A hashable key tuple.
+    """
+
+    return (
+        state.getPacmanPosition(),
+        state.getFood(),
+        state.getGhostPosition(1),
+        state.getScore(),
+        # ...
+    )
+
+
 class PacmanAgent(Agent):
     """Pacman agent using Minimax with alpha-beta pruning."""
 
@@ -8,6 +28,7 @@ class PacmanAgent(Agent):
         super().__init__()
         self.moves = None
         self.depth = 7
+        self.transposition_table = {}
 
     def get_action(self, state):
         """Given a Pacman game state, returns a legal move.
@@ -63,8 +84,17 @@ class PacmanAgent(Agent):
         Returns:
             The utility value and the corresponding action.
         """
+        # Check if the state is already in the transposition table
+        state_key = key(state)
+        if state_key in self.transposition_table:
+            return self.transposition_table[state_key]
+
+        # Check if the state is a terminal state
         if state.isWin() or state.isLose() or depth == 0:
-            return self.utility(state), None
+            utility_value = self.utility(state)
+            self.transposition_table[state_key] = utility_value, None
+            return utility_value, None
+
         v = float('-inf')
         best_action = None
         for action in state.getLegalActions():
@@ -74,8 +104,12 @@ class PacmanAgent(Agent):
                 v = min_val
                 best_action = action
             if v >= beta:
+                self.transposition_table[state_key] = v, action
                 return v, action
             alpha = max(alpha, v)
+
+        # Store the best action in the transposition table
+        self.transposition_table[state_key] = v, best_action
         return v, best_action
 
     def min_value(self, state, alpha, beta, depth):
@@ -90,8 +124,17 @@ class PacmanAgent(Agent):
         Returns:
             The utility value and the corresponding action.
         """
+        # Check if the state is already in the transposition table
+        state_key = key(state)
+        if state_key in self.transposition_table:
+            return self.transposition_table[state_key]
+
+        # Check if the state is a terminal state
         if state.isWin() or state.isLose() or depth == 0:
-            return self.utility(state), None
+            utility_value = self.utility(state)
+            self.transposition_table[state_key] = utility_value, None
+            return utility_value, None
+
         v = float('inf')
         best_action = None
         for action in state.getLegalActions(1):
@@ -101,8 +144,11 @@ class PacmanAgent(Agent):
                 v = max_val
                 best_action = action
             if v <= alpha:
+                self.transposition_table[state_key] = v, action
                 return v, action
             beta = min(beta, v)
+
+        self.transposition_table[state_key] = v, best_action
         return v, best_action
 
     def utility(self, state):
