@@ -109,8 +109,8 @@ class PacmanAgent(Agent):
         if not food_positions:
             return 0
 
-        # Calculate nearest food distance
-        nearest_food_distance = min(
+        # Calculate maximum distance to any food pellet
+        max_food_distance = max(
             manhattanDistance(pacman_pos, food) for food in food_positions
         )
 
@@ -120,6 +120,13 @@ class PacmanAgent(Agent):
             for food in food_positions
         )
 
-        # Combine nearest food distance with a focus on clusters
-        heuristic_value = nearest_food_distance - 10 * cluster_score
+        # Multiplier to adjust heuristic value based on food count
+        multiplier = 1
+        if len(food_positions) < 5:
+            multiplier = 2
+        elif len(food_positions) > 10:
+            multiplier = 0.5
+
+        # Combine maximum food distance with a focus on clusters
+        heuristic_value = multiplier * max_food_distance - 15 * cluster_score
         return heuristic_value
