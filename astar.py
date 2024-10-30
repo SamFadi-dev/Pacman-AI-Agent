@@ -11,7 +11,6 @@ def key(state):
     Returns:
         A hashable key tuple.
     """
-
     return (
         state.getPacmanPosition(),
         state.getFood(),
@@ -19,15 +18,11 @@ def key(state):
 
 
 class PacmanAgent(Agent):
-    """Pacman agent based on depth-first search (DFS)."""
+    """Pacman agent optimized to maximize score through A* search."""
 
     def __init__(self):
         super().__init__()
-
         self.moves = None
-        # Cache for the heuristic function
-        # Idk if I can put it here
-        self.heuristic_cache = {}
 
     def get_action(self, state):
         """Given a Pacman game state, returns a legal move.
@@ -47,13 +42,14 @@ class PacmanAgent(Agent):
             return Directions.STOP
 
     def astar(self, state):
-        """Given a Pacman game state, returns a list of legal moves to solve
+        """Given a Pacman game state, returns a list of legal moves
+        to maximize score.
 
         Args:
             state: a game state. See API or class `pacman.GameState`.
 
         Returns:
-            a list of legal moves
+            A list of legal moves.
         """
         closed = set()
         open_queue = PriorityQueue()
@@ -66,32 +62,31 @@ class PacmanAgent(Agent):
             if current.isWin():
                 return path
 
-            # Check if the current state is already closed if so skip it
             current_key = key(current)
             if current_key in closed:
                 continue
             closed.add(current_key)
 
-            # Generate successors and add them to the open queue
             for successor, action in current.generatePacmanSuccessors():
-                # Check if the successor is already closed if so skip it
                 successor_key = key(successor)
                 if successor_key in closed:
                     continue
 
-                # +1 because the cost to move from the current node to the
-                # successor is 1 (take me a lot of time to understand this...)
                 tentative_g_score = g_score[current] + 1
-
-                # Check if the successor is already
-                # in the open queue with a better g_score
-                succ = successor
-                if succ not in g_score or tentative_g_score < g_score[succ]:
+                t_g_score = tentative_g_score
+                # Only consider paths that improve the g_score
+                if successor not in g_score or t_g_score < g_score[successor]:
                     g_score[successor] = tentative_g_score
+
+                    # Calculate heuristic for the successor
                     pacmanPosition = successor.getPacmanPosition()
-                    foods = successor.getFood()
-                    heuristics = self.heuristic(pacmanPosition, foods)
-                    f_score = tentative_g_score + heuristics
+                    foodGrid = successor.getFood()
+                    heuristics = self.heuristic(pacmanPosition, foodGrid)
+                    # f_score considers actual score to favor
+                    # states with higher food count
+                    score = successor.getScore()
+                    f_score = tentative_g_score + heuristics - score
+
                     new_path = path + [action]
                     open_queue.push((successor, new_path), f_score)
 
@@ -99,43 +94,32 @@ class PacmanAgent(Agent):
         return []
 
     def heuristic(self, pacman_pos, food_grid):
-        # Get the food positions
+        """Heuristic function that considers food clustering.
+
+        Args:
+            pacman_pos: Pacman's position in the game.
+            food_grid: Grid containing food locations.
+
+        Returns:
+            A heuristic cost estimate.
+        """
         food_positions = tuple(food_grid.asList())
 
-        # Get in cache if possible
-        if (pacman_pos, food_positions) in self.heuristic_cache:
-            return self.heuristic_cache[(pacman_pos, food_positions)]
-
-        # If not cached, compute the heuristic
+        # No food left, heuristic is zero
         if not food_positions:
-            heuristic_value = 0
-        else:
-            # Calculate the nearest food distance
-            nearest_food = min(
-                manhattanDistance(pacman_pos, food) for food in food_positions
-            )
+            return 0
 
-            # Approximate the MST cost by summing
-            # distances between nearest food points
-            mst_cost = 0
-            unvisited = set(food_positions)
-            current_pos = food_positions[0]
-            unvisited.remove(current_pos)
+        # Calculate nearest food distance
+        nearest_food_distance = min(
+            manhattanDistance(pacman_pos, food) for food in food_positions
+        )
 
-            while unvisited:
-                # Find the nearest unvisited food position from current_pos
-                next_food = min(
-                    unvisited, key=lambda food: manhattanDistance(
-                        current_pos, food
-                        )
-                    )
-                # Add the distance to mst_cost and move to next_food
-                mst_cost += manhattanDistance(current_pos, next_food)
-                current_pos = next_food
-                unvisited.remove(current_pos)
+        # Cluster score to favor paths with multiple nearby food dots
+        cluster_score = sum(
+            1 / (manhattanDistance(pacman_pos, food) + 1)
+            for food in food_positions
+        )
 
-            heuristic_value = nearest_food + mst_cost
-
-        # Cache the computed heuristic value
-        self.heuristic_cache[(pacman_pos, food_positions)] = heuristic_value
+        # Combine nearest food distance with a focus on clusters
+        heuristic_value = nearest_food_distance - 10 * cluster_score
         return heuristic_value
