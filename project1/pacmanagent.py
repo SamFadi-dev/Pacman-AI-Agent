@@ -18,5 +18,3 @@ class PacmanAgent(Agent):
         """
 
         return Directions.STOP
-    def minmax(self,state):
-        pass
