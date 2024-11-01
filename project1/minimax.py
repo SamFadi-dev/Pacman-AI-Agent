@@ -8,7 +8,6 @@ class PacmanAgent(Agent):
     def __init__(self):
         super().__init__()
         self.visit_count = {}
-        self.transposition_table = {}
 
     def get_action(self, state):
         """Given a Pacman game state, returns a legal move."""
@@ -25,17 +24,11 @@ class PacmanAgent(Agent):
         return action if action else Directions.STOP
 
     def minimax(self, state, is_pacman_turn):
-        """Performs Minimax with a transposition table."""
-
-        # Check if the state is already in the transposition table
-        state_key = self.key(state)
-        if state_key in self.transposition_table:
-            return self.transposition_table[state_key]
+        """Performs Minimax."""
 
         # If the state is terminal, return the utility value
         if self.isTerminal(state):
             utility_value = self.utility(state)
-            self.transposition_table[state_key] = utility_value, None
             return utility_value, None
 
         if is_pacman_turn:
@@ -49,15 +42,14 @@ class PacmanAgent(Agent):
         v = float('-inf')
         best_action = None
 
-        for action in state.getLegalActions():
-            successor = state.generateSuccessor(0, action)
-            min_val, _ = self.minimax(successor, is_pacman_turn=False)
+        for successor_state, action in state.generatePacmanSuccessors():
+            min_val, _ = self.minimax(
+                successor_state, is_pacman_turn=False
+            )
             if min_val > v:
                 v = min_val
                 best_action = action
 
-        # Store the result in the transposition table
-        self.transposition_table[self.key(state)] = v, best_action
         return v, best_action
 
     def min_value(self, state):
@@ -66,15 +58,14 @@ class PacmanAgent(Agent):
         v = float('inf')
         best_action = None
 
-        for action in state.getLegalActions(1):
-            successor = state.generateSuccessor(1, action)
-            max_val, _ = self.minimax(successor, is_pacman_turn=True)
+        for successor_state, action in state.generateGhostSuccessors(1):
+            max_val, _ = self.minimax(
+                successor_state, is_pacman_turn=True
+            )
             if max_val < v:
                 v = max_val
                 best_action = action
 
-        # Store the result in the transposition table
-        self.transposition_table[self.key(state)] = v, best_action
         return v, best_action
 
     def isTerminal(self, state):
@@ -119,26 +110,3 @@ class PacmanAgent(Agent):
             ghost_penalty = - 5
 
         return state.getScore() + ghost_penalty + food_reward + visit_penalty
-
-    def key(self, state):
-        """Returns a key that uniquely identifies a Pacman game state.
-
-        Arguments:
-            state: a game state. See API or class `pacman.GameState`.
-
-        Returns:
-            A hashable key tuple.
-        """
-        # Get Pacman's position
-        pacman_position = state.getPacmanPosition()
-
-        # Get food as a tuple of positions
-        food_positions = tuple((x, y) for x, y in state.getFood().asList())
-
-        return (
-            pacman_position,
-            food_positions,
-            state.getGhostPosition(1),
-            state.getGhostDirection(1),
-            state.getScore(),
-        )

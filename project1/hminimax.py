@@ -14,14 +14,6 @@ class PacmanAgent(Agent):
         """Given a Pacman game state, returns a legal move."""
         _, action = self.hMinimax(state, self.depth, is_pacman_turn=True)
 
-        # Update the visit count for Pacman's current position
-        pacman_pos = state.getPacmanPosition()
-        if pacman_pos in self.visit_count:
-            # Increment the visit count (higher penalty for revisits)
-            self.visit_count[pacman_pos] += 10
-        else:
-            self.visit_count[pacman_pos] = 1
-
         return action if action else Directions.STOP
 
     def hMinimax(self, state, depth, is_pacman_turn):
@@ -38,16 +30,14 @@ class PacmanAgent(Agent):
             return self.min_value(state, depth)
 
     def max_value(self, state, depth):
-        """Max value function for Pacman
-        (trying to survive and collect food)."""
+        """Fonction max pour Pacman (survivre et ramasser la nourriture)."""
         v = float('-inf')
         best_action = None
 
-        for action in state.getLegalActions():
-            successor = state.generateSuccessor(0, action)
+        for successor_state, action in state.generatePacmanSuccessors():
             min_val, _ = self.hMinimax(
-                successor, depth - 1, is_pacman_turn=False
-                )
+                successor_state, depth - 1, is_pacman_turn=False
+            )
             if min_val > v:
                 v = min_val
                 best_action = action
@@ -55,16 +45,14 @@ class PacmanAgent(Agent):
         return v, best_action
 
     def min_value(self, state, depth):
-        """Min value function for ghosts
-        (trying to minimize Pacman's score)."""
+        """Fonction min pour les fantômes (réduire le score de Pacman)."""
         v = float('inf')
         best_action = None
 
-        for action in state.getLegalActions(1):
-            successor = state.generateSuccessor(1, action)
+        for successor_state, action in state.generateGhostSuccessors(1):
             max_val, _ = self.hMinimax(
-                successor, depth - 1, is_pacman_turn=True
-                )
+                successor_state, depth - 1, is_pacman_turn=True
+            )
             if max_val < v:
                 v = max_val
                 best_action = action
@@ -105,16 +93,19 @@ class PacmanAgent(Agent):
 
         # Higher reward for getting closer to food
         if min_food_distance < 3:
-            food_reward = 30 / (min_food_distance + 1)
-        else:
             food_reward = 35 / (min_food_distance + 1)
+        else:
+            food_reward = 30 / (min_food_distance + 1)
 
         # Incremental revisit penalty based on visit count
-        visit_penalty = -5 * self.visit_count.get(pacman_pos, 0)
+        self.visit_count[pacman_pos] = self.visit_count.get(pacman_pos, 0) + 1
+        visit_penalty = -self.visit_count[pacman_pos]
 
         # If Pacman is close to both food and ghosts, prioritize food
         # I think that that is a good idea to prioritize food
         if min_food_distance < 3 and min_ghost_distance < 3:
-            ghost_penalty = - 5
+            ghost_penalty = -5
 
-        return state.getScore() + ghost_penalty + food_reward + visit_penalty
+        dynamic_penalty = ghost_penalty + visit_penalty
+
+        return 10 * state.getScore() + dynamic_penalty + food_reward
