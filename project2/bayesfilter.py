@@ -50,8 +50,23 @@ class BeliefStateAgent(Agent):
         Returns:
             The W x H observation matrix O_t.
         """
+        # Binomial distribution parameters
+        n = 4
+        p = 0.5
 
-        pass
+        # Initialize the observation matrix
+        width, height = walls.width, walls.height
+        Observation_matrix = np.zeros((width, height))
+
+        # Fill the observation matrix
+        for i in range(width):
+            for j in range(height):
+                if walls[i][j] is False:
+                    # Where z is the noise
+                    z = evidence - manhattanDistance(position, (i, j)) + n*p
+                    Observation_matrix[i][j] = np.random.binomial(n, p, z)
+
+        return Observation_matrix
 
     def update(self, walls, belief, evidence, position):
         """Updates the previous ghost belief state
