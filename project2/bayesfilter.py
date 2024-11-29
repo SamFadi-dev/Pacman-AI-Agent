@@ -189,8 +189,23 @@ class BeliefStateAgent(Agent):
 
         T = self.transition_matrix(walls, position)
         O = self.observation_matrix(walls, evidence, position)
+        updated_belief = np.zeros_like(belief)
+        
+        # b_t = O_t * T_t * b_{t-1} (normalized)
+        for i in range(walls.width):
+            for j in range(walls.height):
+                # Sum over all possible (k, l) to compute the updated belief
+                belief_sum = 0
+                for k in range(walls.width):
+                    for l in range(walls.height):
+                        belief_sum += T[i, j, k, l] * belief[k, l]
 
-        pass
+            # Apply the observation likelihood (O[i, j]) to the sum
+            updated_belief[i, j] = O[i, j] * belief_sum
+
+        # Normalize to have a probability distribution
+        final_belief = updated_belief / np.sum(updated_belief)
+        return final_belief
 
     def get_action(self, state):
         """Updates the previous belief states given the current state.
@@ -243,6 +258,7 @@ class PacmanAgent(Agent):
         Returns:
             A legal move as defined in `game.Directions`.
         """
+        
 
         return Directions.STOP
 
