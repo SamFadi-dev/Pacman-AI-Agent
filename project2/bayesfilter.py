@@ -191,18 +191,25 @@ class BeliefStateAgent(Agent):
         T = self.transition_matrix(walls, position)
         O = self.observation_matrix(walls, evidence, position)
         updated_belief = np.zeros_like(belief)
+        
+        # Debug:
+        #print("Initial belief sum:", np.sum(belief))
+        #print("Transition matrix sum:", np.sum(T))
+        #print("Observation matrix sum:", np.sum(O))
 
         # b_t = O_t * T_t * b_{t-1} (normalized)
         for i in range(walls.width):
             for j in range(walls.height):
+                if walls[i][j]:  # Skip walls
+                    continue
                 # Sum over all possible (k, l) to compute the updated belief
                 belief_sum = 0
                 for k in range(walls.width):
                     for l in range(walls.height):
                         belief_sum += T[i, j, k, l] * belief[k, l]
 
-            # Apply the observation likelihood (O[i, j]) to the sum
-            updated_belief[i, j] = O[i, j] * belief_sum
+                # Apply the observation likelihood (O[i, j]) to the sum
+                updated_belief[i, j] = O[i, j] * belief_sum
 
         # Normalize to have a probability distribution
         belief_sum_total = np.sum(updated_belief)
@@ -252,6 +259,32 @@ class PacmanAgent(Agent):
 
     def __init__(self):
         super().__init__()
+        
+    def get_legal_moves(self, position, walls):
+        """
+        Compute the legal moves for Pacman given the walls.
+
+        Arguments:
+            position: The current position of Pacman as (x, y).
+            walls: The W x H grid of walls.
+
+        Returns:
+            A list of legal moves as (x, y) tuples.
+        """
+        x, y = position
+        moves = []
+        # Possible directions
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+
+        # Check for legal moves
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < walls.width and 0 <= ny < walls.height:
+                # Check if the cell is not a wall
+                if walls[nx][ny] is False:
+                    moves.append((nx, ny))
+
+        return moves
 
     def _get_action(self, walls, beliefs, eaten, position):
         """
@@ -264,7 +297,41 @@ class PacmanAgent(Agent):
         Returns:
             A legal move as defined in `game.Directions`.
         """
-        
+        likely_positions = []
+        for i, belief in enumerate(beliefs):
+            # Skip eaten ghosts
+            if eaten[i]:
+                continue
+            ghost_position = np.unravel_index(np.argmax(belief), belief.shape)
+            likely_positions.append(ghost_position)
+
+        # Step 2: Compute legal moves
+        legal_moves = self.get_legal_moves(position, walls)
+
+        # Step 3: Choose the best move
+        best_move = None
+        min_distance = float('inf')
+        for move in legal_moves:
+            # Compute the distance to the closest likely ghost position
+            distance = min(manhattanDistance(move, ghost_pos) 
+                           for ghost_pos in likely_positions)
+
+            # Get the move with the smallest distance
+            if distance < min_distance:
+                min_distance = distance
+                best_move = move
+
+        # Step 4: Map the best move to a direction
+        # Should be a better way to do this
+        if best_move:
+            dx, dy = best_move[0] - position[0], best_move[1] - position[1]
+            direction_mapping = {
+                (0, 1): Directions.NORTH,
+                (1, 0): Directions.EAST,
+                (0, -1): Directions.SOUTH,
+                (-1, 0): Directions.WEST,
+            }
+            return direction_mapping.get((dx, dy), Directions.STOP)
 
         return Directions.STOP
 
