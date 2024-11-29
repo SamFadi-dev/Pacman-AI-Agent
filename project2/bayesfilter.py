@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 from pacman_module.game import Agent, Directions, manhattanDistance
 
@@ -14,8 +15,8 @@ class BeliefStateAgent(Agent):
         super().__init__()
 
         self.ghost = ghost
-        
-    def compute_legal_moves(x, y, free_cells):
+      
+    def compute_legal_moves(slef, x, y, free_cells):
         """Compute the legal moves for the ghost given the walls 
         (free cells precomputed).
         
@@ -104,7 +105,7 @@ class BeliefStateAgent(Agent):
 
         return transition_matrix
 
-    def compute_binomial(z, n, p):
+    def compute_binomial(self, z, n, p):
         """
         Calculate the binomial probability mass function P(z | n, p).
 
@@ -119,10 +120,10 @@ class BeliefStateAgent(Agent):
         # Calculate the binomial coefficient (n choose z)
         if z < 0 or z > n:
             return 0
-        binomial_coeff = np.math.factorial(n) // (
-            np.math.factorial(z) * np.math.factorial(n - z)
+        binomial_coeff = math.factorial(n) // (
+            math.factorial(z) * math.factorial(n - z)
             )
-        
+
         # Calculate the probability using the PMF formula
         probability = binomial_coeff * (p ** z) * ((1 - p) ** (n - z))
         return probability
@@ -190,7 +191,7 @@ class BeliefStateAgent(Agent):
         T = self.transition_matrix(walls, position)
         O = self.observation_matrix(walls, evidence, position)
         updated_belief = np.zeros_like(belief)
-        
+
         # b_t = O_t * T_t * b_{t-1} (normalized)
         for i in range(walls.width):
             for j in range(walls.height):
@@ -204,7 +205,12 @@ class BeliefStateAgent(Agent):
             updated_belief[i, j] = O[i, j] * belief_sum
 
         # Normalize to have a probability distribution
-        final_belief = updated_belief / np.sum(updated_belief)
+        belief_sum_total = np.sum(updated_belief)
+
+        # Add a small epsilon to the sum to avoid division by zero
+        epsilon = 1e-10
+        final_belief = updated_belief / (belief_sum_total + epsilon)
+
         return final_belief
 
     def get_action(self, state):
