@@ -14,6 +14,53 @@ class BeliefStateAgent(Agent):
         super().__init__()
 
         self.ghost = ghost
+        
+    def compute_legal_moves(x, y, free_cells):
+        """Compute the legal moves for the ghost given the walls 
+        (free cells precomputed).
+        
+        Arguments:
+            x: The x-coordinate of the ghost.
+            y: The y-coordinate of the ghost.
+            walls: The W x H grid of walls 
+                (not used directly here, since free_cells is precomputed).
+            free_cells: List of free cells (precomputed).
+        
+        Returns:
+            A list of legal moves for the ghost.
+        """
+        moves = []
+        # Possible directions
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        
+        # Get legal moves
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if (nx, ny) in free_cells:
+                moves.append((nx, ny))
+        
+        # If no legal moves, the ghost stays in its current position
+        if not moves:
+            moves.append((x, y))
+        
+        return moves
+
+    def compute_weight(self, distance_to_pacman):
+        """Compute the weight factor for the transition matrix.
+        Arguments:
+            distance_to_pacman: The Manhattan distance to Pacman.
+        Returns:
+            The weight factor for the transition matrix.
+        """
+        if self.ghost == "afraid":
+            return 1 + distance_to_pacman
+        elif self.ghost == "terrified":
+            return (distance_to_pacman ** 2)
+        elif self.ghost == "fearless":
+            return 1
+        else:
+            print("Invalid ghost type")
+            return 1
 
     def transition_matrix(self, walls, position):
         """Builds the transition matrix
@@ -31,9 +78,31 @@ class BeliefStateAgent(Agent):
             of T_t is the probability P(X_t = (k, l) | X_{t-1} = (i, j)) for
             the ghost to move from (i, j) to (k, l).
         """
-        
+        transition_matrix = np.zeros(
+            (walls.width, walls.height, walls.width, walls.height))
 
-        pass
+        # Precompute free cells for efficiency
+        free_cells = set(
+            (i, j) for i in range(walls.width) for j in range(
+                walls.height) if not walls[i][j])
+
+        # Fill the transition matrix
+        for i, j in free_cells:
+            legal_moves = self.compute_legal_moves(i, j, free_cells)
+            total_weight = 0
+
+            for k, l in legal_moves:
+                distance_to_pacman = manhattanDistance((k, l), position)
+                # Set weight factor based on ghost type
+                weight = self.compute_weight(distance_to_pacman)
+                transition_matrix[i][j][k][l] = weight
+                total_weight += weight
+
+            # Normalize weights (sum to 1)
+            if total_weight > 0:
+                transition_matrix[i][j] /= total_weight
+
+        return transition_matrix
 
     def compute_binomial(z, n, p):
         """
