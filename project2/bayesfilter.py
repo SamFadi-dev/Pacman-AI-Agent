@@ -31,8 +31,32 @@ class BeliefStateAgent(Agent):
             of T_t is the probability P(X_t = (k, l) | X_{t-1} = (i, j)) for
             the ghost to move from (i, j) to (k, l).
         """
+        
 
         pass
+
+    def compute_binomial(z, n, p):
+        """
+        Calculate the binomial probability mass function P(z | n, p).
+
+        Arguments:
+            z: The number of successes.
+            n: The number of trials.
+            p: The probability of success in each trial.
+
+        Returns:
+            The probability of observing exactly z successes in n trials.
+        """
+        # Calculate the binomial coefficient (n choose z)
+        if z < 0 or z > n:
+            return 0
+        binomial_coeff = np.math.factorial(n) // (
+            np.math.factorial(z) * np.math.factorial(n - z)
+            )
+        
+        # Calculate the probability using the PMF formula
+        probability = binomial_coeff * (p ** z) * ((1 - p) ** (n - z))
+        return probability
 
     def observation_matrix(self, walls, evidence, position):
         """Builds the observation matrix
@@ -50,6 +74,7 @@ class BeliefStateAgent(Agent):
         Returns:
             The W x H observation matrix O_t.
         """
+        # e = ManhattanDistance(Pacman,Ghost) + z − np  z∼Binom(n,p)
         # Binomial distribution parameters
         n = 4
         p = 0.5
@@ -62,9 +87,16 @@ class BeliefStateAgent(Agent):
         for i in range(width):
             for j in range(height):
                 if walls[i][j] is False:
-                    # Where z is the noise
-                    z = evidence - manhattanDistance(position, (i, j)) + n*p
-                    Observation_matrix[i][j] = np.random.binomial(n, p, z)
+                    distance = manhattanDistance(position, (i, j))
+                    # Where z is the noise (make sure it is an integer)
+                    z = round(evidence - distance + n * p)
+                    # Calculate the probability of observing the evidence
+                    # z must be between 0 and n
+                    if 0 <= z <= n:
+                        Observation_matrix[i][j] = self.compute_binomial(
+                            z, n, p)
+                    else:
+                        Observation_matrix[i][j] = 0 
 
         return Observation_matrix
 
