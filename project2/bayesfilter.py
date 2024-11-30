@@ -192,29 +192,16 @@ class BeliefStateAgent(Agent):
         O = self.observation_matrix(walls, evidence, position)
         updated_belief = np.zeros_like(belief)
 
-        # Debug:
-        # print("Initial belief sum:", np.sum(belief))
-        # print("Transition matrix sum:", np.sum(T))
-        # print("Observation matrix sum:", np.sum(O))
+        # Use tensor dot product to compute the belief sum
+        # Should be better than using nested loops
+        belief_sum = np.tensordot(T, belief, axes=([2, 3], [0, 1]))
 
-        # b_t = O_t * T_t * b_{t-1} (normalized)
-        for i in range(walls.width):
-            for j in range(walls.height):
-                if walls[i][j]:  # Skip walls
-                    continue
-                # Sum over all possible (k, l) to compute the updated belief
-                belief_sum = 0
-                for k in range(walls.width):
-                    for l in range(walls.height):
-                        belief_sum += T[i, j, k, l] * belief[k, l]
-
-                # Apply the observation likelihood (O[i, j]) to the sum
-                updated_belief[i, j] = O[i, j] * belief_sum
+        # Element-wise multiplication with the observation matrix
+        updated_belief = O * belief_sum
 
         # Normalize to have a probability distribution
         belief_sum_total = np.sum(updated_belief)
-
-        # Add a small epsilon to the sum to avoid division by zero
+        # Avoid division by zero
         epsilon = 1e-10
         final_belief = updated_belief / (belief_sum_total + epsilon)
 
