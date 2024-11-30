@@ -56,7 +56,7 @@ class BeliefStateAgent(Agent):
         if self.ghost == "afraid":
             return 1 + distance_to_pacman
         elif self.ghost == "terrified":
-            return (distance_to_pacman ** 2)
+            return (distance_to_pacman ** 3)
         elif self.ghost == "fearless":
             return 1
         else:
