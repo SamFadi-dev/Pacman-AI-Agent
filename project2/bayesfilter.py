@@ -15,35 +15,35 @@ class BeliefStateAgent(Agent):
         super().__init__()
 
         self.ghost = ghost
-      
+
     def compute_legal_moves(slef, x, y, free_cells):
-        """Compute the legal moves for the ghost given the walls 
+        """Compute the legal moves for the ghost given the walls
         (free cells precomputed).
-        
+
         Arguments:
             x: The x-coordinate of the ghost.
             y: The y-coordinate of the ghost.
-            walls: The W x H grid of walls 
+            walls: The W x H grid of walls
                 (not used directly here, since free_cells is precomputed).
             free_cells: List of free cells (precomputed).
-        
+
         Returns:
             A list of legal moves for the ghost.
         """
         moves = []
         # Possible directions
         directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-        
+
         # Get legal moves
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
             if (nx, ny) in free_cells:
                 moves.append((nx, ny))
-        
+
         # If no legal moves, the ghost stays in its current position
         if not moves:
             moves.append((x, y))
-        
+
         return moves
 
     def compute_weight(self, distance_to_pacman):
@@ -166,7 +166,7 @@ class BeliefStateAgent(Agent):
                         Observation_matrix[i][j] = self.compute_binomial(
                             z, n, p)
                     else:
-                        Observation_matrix[i][j] = 0 
+                        Observation_matrix[i][j] = 0
 
         return Observation_matrix
 
@@ -191,11 +191,11 @@ class BeliefStateAgent(Agent):
         T = self.transition_matrix(walls, position)
         O = self.observation_matrix(walls, evidence, position)
         updated_belief = np.zeros_like(belief)
-        
+
         # Debug:
-        #print("Initial belief sum:", np.sum(belief))
-        #print("Transition matrix sum:", np.sum(T))
-        #print("Observation matrix sum:", np.sum(O))
+        # print("Initial belief sum:", np.sum(belief))
+        # print("Transition matrix sum:", np.sum(T))
+        # print("Observation matrix sum:", np.sum(O))
 
         # b_t = O_t * T_t * b_{t-1} (normalized)
         for i in range(walls.width):
@@ -259,7 +259,7 @@ class PacmanAgent(Agent):
 
     def __init__(self):
         super().__init__()
-        
+
     def get_legal_moves(self, position, walls):
         """
         Compute the legal moves for Pacman given the walls.
@@ -313,7 +313,7 @@ class PacmanAgent(Agent):
         min_distance = float('inf')
         for move in legal_moves:
             # Compute the distance to the closest likely ghost position
-            distance = min(manhattanDistance(move, ghost_pos) 
+            distance = min(manhattanDistance(move, ghost_pos)
                            for ghost_pos in likely_positions)
 
             # Get the move with the smallest distance
