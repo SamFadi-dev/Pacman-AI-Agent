@@ -2,7 +2,15 @@ import numpy as np
 import math
 
 from pacman_module.game import Agent, Directions, manhattanDistance
+from pacman_module.util import PriorityQueue
 
+
+DIRECTION_MAPPING = {
+                (0, 1): Directions.NORTH,
+                (1, 0): Directions.EAST,
+                (0, -1): Directions.SOUTH,
+                (-1, 0): Directions.WEST,
+                }
 
 class BeliefStateAgent(Agent):
     """Belief state agent.
@@ -56,7 +64,7 @@ class BeliefStateAgent(Agent):
         if self.ghost == "afraid":
             return 1 + distance_to_pacman
         elif self.ghost == "terrified":
-            return (distance_to_pacman ** 3)
+            return (distance_to_pacman ** 2.9)
         elif self.ghost == "fearless":
             return 1
         else:
@@ -193,7 +201,6 @@ class BeliefStateAgent(Agent):
         updated_belief = np.zeros_like(belief)
 
         # Use tensor dot product to compute the belief sum
-        # Should be better than using nested loops
         belief_sum = np.tensordot(T, belief, axes=([2, 3], [0, 1]))
 
         # Element-wise multiplication with the observation matrix
@@ -284,6 +291,58 @@ class PacmanAgent(Agent):
         Returns:
             A legal move as defined in `game.Directions`.
         """
+        def astar(walls, pacman_pos, ghost_pos):
+            def generate_successor(current_pos):
+                """
+                Generate the successors of the current position.
+
+                Arguments:
+                    current_pos : The current position of pacman (x, y).
+
+                Returns:
+                    A list of successors as (Name of the move, (x, y)) tuples.
+                """
+                successors = []
+                # Iterate through the possible moves
+                for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                    nx, ny = current_pos[0] + dx, current_pos[1] + dy
+
+                    if (nx, ny) in self.get_legal_moves(current_pos, walls):
+                        successors.append((DIRECTION_MAPPING[(dx, dy)], (nx, ny)))
+                return successors
+
+            # A* algorithm
+            fringe = PriorityQueue()
+            closed = set()
+            path = []
+            g = f = 0
+            fringe.push((pacman_pos, path, g), f)
+
+            while not fringe.isEmpty():
+                _, current = fringe.pop()
+                # Check if the current position is the ghost position
+                if current[0] == ghost_pos:
+                    return current[1][0] if current[1] else Directions.STOP
+
+                if current[0] in closed:
+                    continue
+                closed.add(current[0])
+
+                # Generate successors and iterate through it
+                for successor, new_pos in generate_successor(current[0]):
+                    if new_pos in closed:
+                        continue
+                    
+                    # heuristic function
+                    h = manhattanDistance(new_pos, ghost_pos)
+                    # total cost
+                    f = (g + 1) + h
+                    fringe.push((new_pos, current[1] + [successor], g + 1), f)
+            
+            return []  # No path found
+
+
+        # Compute likely ghost(s) position(s)
         likely_positions = []
         for i, belief in enumerate(beliefs):
             # Skip eaten ghosts
@@ -292,35 +351,7 @@ class PacmanAgent(Agent):
             ghost_position = np.unravel_index(np.argmax(belief), belief.shape)
             likely_positions.append(ghost_position)
 
-        # Step 2: Compute legal moves
-        legal_moves = self.get_legal_moves(position, walls)
-
-        # Step 3: Choose the best move
-        best_move = None
-        min_distance = float('inf')
-        for move in legal_moves:
-            # Compute the distance to the closest likely ghost position
-            distance = min(manhattanDistance(move, ghost_pos)
-                           for ghost_pos in likely_positions)
-
-            # Get the move with the smallest distance
-            if distance < min_distance:
-                min_distance = distance
-                best_move = move
-
-        # Step 4: Map the best move to a direction
-        # Should be a better way to do this
-        if best_move:
-            dx, dy = best_move[0] - position[0], best_move[1] - position[1]
-            direction_mapping = {
-                (0, 1): Directions.NORTH,
-                (1, 0): Directions.EAST,
-                (0, -1): Directions.SOUTH,
-                (-1, 0): Directions.WEST,
-            }
-            return direction_mapping.get((dx, dy), Directions.STOP)
-
-        return Directions.STOP
+        return astar(walls, position, likely_positions[0])
 
     def get_action(self, state):
         """Given a Pacman game state, returns a legal move.
