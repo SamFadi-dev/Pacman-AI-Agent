@@ -12,6 +12,7 @@ DIRECTION_MAPPING = {
                 (-1, 0): Directions.WEST,
                 }
 
+
 class BeliefStateAgent(Agent):
     """Belief state agent.
 
@@ -308,7 +309,8 @@ class PacmanAgent(Agent):
                     nx, ny = current_pos[0] + dx, current_pos[1] + dy
 
                     if (nx, ny) in self.get_legal_moves(current_pos, walls):
-                        successors.append((DIRECTION_MAPPING[(dx, dy)], (nx, ny)))
+                        successors.append((DIRECTION_MAPPING[(dx, dy)],
+                                           (nx, ny)))
                 return successors
 
             # A* algorithm
@@ -332,15 +334,14 @@ class PacmanAgent(Agent):
                 for successor, new_pos in generate_successor(current[0]):
                     if new_pos in closed:
                         continue
-                    
+
                     # heuristic function
                     h = manhattanDistance(new_pos, ghost_pos)
                     # total cost
                     f = (g + 1) + h
                     fringe.push((new_pos, current[1] + [successor], g + 1), f)
-            
-            return []  # No path found
 
+            return []  # No path found
 
         # Compute likely ghost(s) position(s)
         likely_positions = []
