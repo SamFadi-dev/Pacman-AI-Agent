@@ -343,6 +343,9 @@ class PacmanAgent(Agent):
 
             return []  # No path found
 
+        def ghost_sorting(ghost_pos):
+            return manhattanDistance(position, ghost_pos)
+
         # Compute likely ghost(s) position(s)
         likely_positions = []
         for i, belief in enumerate(beliefs):
@@ -352,7 +355,8 @@ class PacmanAgent(Agent):
             ghost_position = np.unravel_index(np.argmax(belief), belief.shape)
             likely_positions.append(ghost_position)
 
-        return astar(walls, position, likely_positions[0])
+        sorted_likely_positions = sorted(likely_positions, key=ghost_sorting)
+        return astar(walls, position, sorted_likely_positions[0])
 
     def get_action(self, state):
         """Given a Pacman game state, returns a legal move.
